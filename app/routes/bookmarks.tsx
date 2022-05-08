@@ -1,6 +1,6 @@
 import { json, LoaderFunction, redirect } from '@remix-run/node';
 import { Form, useLoaderData } from '@remix-run/react';
-import { getUser } from '~/utils/session.server';
+import { getUser, logout } from '~/utils/session.server';
 
 export const loader: LoaderFunction = async ({ request }) => {
   try {
@@ -8,6 +8,11 @@ export const loader: LoaderFunction = async ({ request }) => {
 
     if (!user) {
       return redirect('/');
+    }
+
+    // check whether the access token has expired
+    if (new Date(user.expires_at) < new Date()) {
+      return logout(request);
     }
 
     const { id, access_token } = user;
@@ -57,7 +62,7 @@ const mediaLookup = (mediaId: string, mediaList: any) =>
 
 const Bookmarks = () => {
   const data = useLoaderData();
-  const { bookmarks } = data;
+  const { bookmarks, user } = data;
   // console.log(data);
 
   if (!bookmarks) {
@@ -66,7 +71,6 @@ const Bookmarks = () => {
 
   return (
     <main>
-      <p>this is the bookmarks page</p>
       <Form action="/logout" method="post">
         <button
           name="logout"
@@ -78,6 +82,8 @@ const Bookmarks = () => {
       </Form>
 
       <div className="max-w-md w-full mx-auto space-y-8">
+        <h1 className="text-2xl">{user.name.split(' ')[0]}'s bookmarks!</h1>
+
         {bookmarks.data.map((tweet, index) => {
           const user = userLookup(tweet.author_id, bookmarks.includes.users);
 

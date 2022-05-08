@@ -25,6 +25,7 @@ type User = {
   id: string;
   name: string;
   username: string;
+  expires_at: string;
 };
 
 export async function createTwitterSession(user: User, redirectTo: string) {
@@ -42,23 +43,13 @@ export async function getSession(request: Request) {
   return sessionStorage.getSession(cookie);
 }
 
-export async function getUser(
-  request: Request
-): Promise<User | Response | null> {
+export async function getUser(request: Request): Promise<User | null> {
   const session = await getSession(request);
   const user = session.get('user');
 
   // if there is no user return null
-  if (!user) return null;
-
-  // check whether the access token has expired
-  // if it has logout so the user can log in again
-  if (new Date(user.expires_at) < new Date()) {
-    return redirect('/', {
-      headers: {
-        'Set-Cookie': await sessionStorage.destroySession(session),
-      },
-    });
+  if (!user) {
+    return null;
   }
 
   return user;
