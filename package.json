@@ -5,7 +5,7 @@
   "license": "",
   "sideEffects": false,
   "scripts": {
-    "build": "remix build",
+    "build": "unocss './app/**/*.{ts,tsx}' -o ./app/styles/uno.css && remix build",
     "dev": "run-p dev:*",
     "dev:css": "unocss './app/**/*.{ts,tsx}' -o ./app/styles/uno.css --watch",
     "dev:remix": "remix dev"
