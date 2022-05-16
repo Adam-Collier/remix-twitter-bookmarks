@@ -2,6 +2,7 @@ import type { LoaderFunction } from '@remix-run/node'
 import { json, redirect } from '@remix-run/node'
 import { Form, useLoaderData, useSearchParams } from '@remix-run/react'
 import { getUser, logout } from '~/utils/session.server'
+import { Tweet } from '~/components/Tweet'
 
 const userLookup = (userId: string, users: any) =>
   users.find((user) => user.id === userId)
@@ -134,7 +135,7 @@ const Bookmarks = () => {
         )}
 
         {bookmarks.data.length > 0 &&
-          bookmarks.data.map((tweet, index) => {
+          bookmarks.data.map((tweet: any) => {
             const user = userLookup(tweet.author_id, bookmarks.includes.users)
 
             const media = mediaLookup(
@@ -143,69 +144,17 @@ const Bookmarks = () => {
             )
 
             return (
-              <a
-                className="block flex space-x-4"
-                key={index}
-                href={`https://twitter.com/${user.username}/status/${tweet.id}`}
-              >
-                <div className="relative w-8 h-8 rounded-full bg-gray-100 overflow-hidden shrink-0">
-                  <img
-                    className="absolute top-0 left-0 w-full h-full"
-                    src={user.profile_image_url}
-                    alt={`${user.username} profile`}
-                  />
-                </div>
-                <div className="flex-col space-y-2">
-                  <header className="flex space-x-4 items-center">
-                    <div className="flex items-center space-x-1">
-                      <h2>{user.name} </h2>
-                      {user.verified && (
-                        <img
-                          className="w-4 h-4 text-red"
-                          src="/verified.svg"
-                          alt=""
-                        />
-                      )}
-                      <p>
-                        @{user.username} ·{' '}
-                        {/* {new Date(tweet.created_at).toLocaleString()} */}
-                        {new Date(tweet.created_at).toLocaleDateString(
-                          undefined,
-                          {
-                            year: undefined,
-                            month: 'long',
-                            day: 'numeric',
-                          }
-                        )}
-                      </p>
-                    </div>
-                  </header>
-                  {media && media.type === 'photo' && (
-                    <div
-                      className="relative rounded-md overflow-hidden"
-                      style={{
-                        paddingTop: `${(media.height / media.width) * 100}%`,
-                      }}
-                    >
-                      <img
-                        className="absolute top-0 left-0 w-full h-full"
-                        src={media.url}
-                        alt="tweet media"
-                      />
-                    </div>
-                  )}
-
-                  {media && media.type === 'video' && (
-                    <div>
-                      <p className="text-xs p-2 bg-blue-100 text-blue-600 rounded-sm">
-                        This tweet contains a video but Twitters Bookmark API
-                        doesnt currently support grabbing their URL.
-                      </p>
-                    </div>
-                  )}
-                  <p>{tweet.text}</p>
-                </div>
-              </a>
+              <Tweet
+                name={user.user}
+                username={user.username}
+                media={media}
+                key={tweet.id}
+                profileImageUrl={user.profile_image_url}
+                verified={user.verified}
+                tweetId={tweet.id}
+                date={tweet.created_at}
+                text={tweet.text}
+              />
             )
           })}
       </div>
