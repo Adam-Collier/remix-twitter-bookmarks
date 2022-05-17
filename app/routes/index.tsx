@@ -1,6 +1,8 @@
 import type { LoaderFunction } from '@remix-run/node'
 import { json } from '@remix-run/node'
 import { Form, Link, useLoaderData } from '@remix-run/react'
+import { animate, spring, stagger } from 'motion'
+import { useEffect } from 'react'
 import { Tweet } from '~/components/Tweet'
 import { getUser } from '~/utils/session.server'
 
@@ -14,6 +16,47 @@ export const loader: LoaderFunction = async ({ request }) => {
 
 export default function Index() {
   const { user } = useLoaderData()
+
+  useEffect(() => {
+    // twitter icon
+    animate(
+      '.twitter-icon',
+      { opacity: [0, 1] },
+      {
+        duration: 0.45,
+        easing: 'ease-in',
+      }
+    )
+
+    // title
+    animate(
+      'h1.title',
+      { opacity: [0, 1] },
+      {
+        duration: 0.45,
+        delay: 0.5,
+        easing: 'ease-in',
+      }
+    )
+
+    // subcopy
+    animate(
+      'p.subcopy',
+      { opacity: [0, 1] },
+      {
+        duration: 0.45,
+        delay: 0.75,
+        easing: 'ease-in',
+      }
+    )
+
+    // button
+    animate(
+      '.button-wrapper',
+      { scale: [0.6, 1], opacity: 1 },
+      { delay: 1.25, easing: spring() }
+    )
+  }, [])
 
   return (
     <main className="relative min-h-screen bg-[#15202B] flex flex-col md:flex-row items-start children:basis-1/2">
@@ -39,21 +82,21 @@ export default function Index() {
           alt=""
         />
         <Tweet
-          className="absolute top-1/8 left-1/2 md:left-[calc(50%-24px)] -translate-x-1/2"
+          className="max-w-sm absolute top-1/8 left-1/2 md:left-[calc(50%-24px)] -translate-x-1/2"
           name="Mountain Dave"
           username="mountaindave"
           media={false}
-          profileImageUrl={''}
+          profileImageUrl={'/avatar.jpg'}
           verified={true}
           date={new Date()}
-          text="Beautiful scenes up here near Upsplash mountain, taking a deep breathe and relishing the moment."
+          text="Beautiful scenes up here near Unsplash mountain, taking a deep breathe and relishing the moment."
         />
       </div>
       <div
-        className="py-16 md:py-0 relative bg-white self-stretch flex flex-col items-center justify-center space-y-4 bg-cover"
+        className="py-16 md:py-0 relative bg-white self-stretch flex flex-col items-center justify-center space-y-3 bg-cover"
         style={{ backgroundImage: "url('/textured_bg.png')" }}
       >
-        <div>
+        <div className="twitter-icon">
           <svg
             width="133"
             height="133"
@@ -67,28 +110,31 @@ export default function Index() {
             />
           </svg>
         </div>
-        <h1 className="text-3xl font-semibold">Twitter Bookmarks</h1>
-        <p className="text-lg text-center">
+        <h1 className="title text-3xl font-semibold">Twitter Bookmarks</h1>
+        <p className="subcopy text-lg text-center">
           The easiest way to find and search
-          <br /> bookmarks you’ve saved{' '}
+          <br />
+          bookmarks you’ve saved
         </p>
-        {user && new Date(user.expires_at) > new Date() ? (
-          <Link to="/bookmarks">
-            <button className="rounded-full bg-[#1d9bf0] text-white py-3 px-6 hover:bg-[#1a8cd8]">
-              Go to your bookmarks
-            </button>
-          </Link>
-        ) : (
-          <Form method="post" action="/login">
-            <button
-              className="rounded-full bg-[#1d9bf0] text-white py-3 px-6 hover:bg-[#1a8cd8]"
-              name="action"
-              value="login"
-            >
-              Login
-            </button>
-          </Form>
-        )}
+        <div className="button-wrapper pt-4 opacity-0">
+          {user && new Date(user.expires_at) > new Date() ? (
+            <Link to="/bookmarks">
+              <button className="rounded-full bg-[#1d9bf0] text-white py-3 px-6 hover:bg-[#1a8cd8]">
+                Go to your bookmarks
+              </button>
+            </Link>
+          ) : (
+            <Form method="post" action="/login">
+              <button
+                className="rounded-full bg-[#1d9bf0] text-white py-3 px-6 hover:bg-[#1a8cd8]"
+                name="action"
+                value="login"
+              >
+                Login
+              </button>
+            </Form>
+          )}
+        </div>
       </div>
     </main>
   )
