@@ -21,15 +21,15 @@ const TweetWrapper = ({
 }
 
 type TweetProps = {
-  tweetId: string
+  tweetId?: string
   name: string
   username: string
   profileImageUrl: string
-  verified: string
-  media: { type: string; url: string; height: number; width: number }
+  verified: Boolean
+  media: { type: string; url: string; height: number; width: number } | Boolean
   text: string
-  date: string
-  className: string
+  date: Date
+  className?: string
 }
 
 export const Tweet = ({
@@ -49,7 +49,7 @@ export const Tweet = ({
         tweetId ? `https://twitter.com/${username}/status/${tweetId}` : null
       }
       className={[
-        'max-w-sm w-full p-4 block flex space-x-4 bg-white rounded',
+        'w-full p-4 pb-5.5 block flex space-x-3 bg-white rounded',
         className,
       ].join(' ')}
     >
@@ -61,7 +61,7 @@ export const Tweet = ({
         />
       </div>
       <div className="flex-col space-y-2">
-        <header className="flex space-x-4 items-center">
+        <header className="flex space-x-4 items-center pt-1.5">
           <div className="flex items-center space-x-1 text-sm">
             <h2>{name} </h2>
             {verified && (
