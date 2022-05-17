@@ -59,10 +59,10 @@ export default function Index() {
   }, [])
 
   return (
-    <main className="relative min-h-screen bg-[#15202B] flex flex-col md:flex-row items-start children:basis-1/2">
-      <div className="relative w-1/2 flex h-screen overflow-hidden w-full">
+    <main className="relative bg-[#15202B] flex flex-col-reverse md:flex-row md:children:basis-1/2 md:min-h-screen">
+      <div className="flex pt-64 md:pt-0 relative overflow-hidden w-full">
         <img
-          className="pt-48 md:pt-0 self-end block h-auto"
+          className="self-end block h-auto"
           src="/half_tone_img.png"
           alt=""
         />
@@ -72,7 +72,7 @@ export default function Index() {
           alt=""
         />
         <img
-          className="absolute bottom-0 left-0 w-full md:hidden"
+          className="absolute -top-[2px] left-0 w-full md:hidden rotate-180"
           src="/page_tear_h.svg"
           alt=""
         />
@@ -82,7 +82,7 @@ export default function Index() {
           alt=""
         />
         <Tweet
-          className="max-w-sm absolute top-1/8 left-1/2 md:left-[calc(50%-24px)] -translate-x-1/2"
+          className="!w-[90%] max-w-sm absolute top-2/12 md:top-1/8 left-1/2 md:left-[calc(50%-24px)] -translate-x-1/2"
           name="Mountain Dave"
           username="mountaindave"
           media={false}
@@ -93,7 +93,7 @@ export default function Index() {
         />
       </div>
       <div
-        className="py-16 md:py-0 relative bg-white self-stretch flex flex-col items-center justify-center space-y-3 bg-cover"
+        className="py-16 md:py-0 relative bg-white md:self-stretch flex flex-col items-center justify-center space-y-3 bg-cover"
         style={{ backgroundImage: "url('/textured_bg.png')" }}
       >
         <div className="twitter-icon opacity-0">
