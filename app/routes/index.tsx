@@ -96,7 +96,7 @@ export default function Index() {
         className="py-16 md:py-0 relative bg-white self-stretch flex flex-col items-center justify-center space-y-3 bg-cover"
         style={{ backgroundImage: "url('/textured_bg.png')" }}
       >
-        <div className="twitter-icon">
+        <div className="twitter-icon opacity-0">
           <svg
             width="133"
             height="133"
@@ -110,8 +110,10 @@ export default function Index() {
             />
           </svg>
         </div>
-        <h1 className="title text-3xl font-semibold">Twitter Bookmarks</h1>
-        <p className="subcopy text-lg text-center">
+        <h1 className="title opacity-0 text-3xl font-semibold">
+          Twitter Bookmarks
+        </h1>
+        <p className="subcopy opacity-0 text-lg text-center">
           The easiest way to find and search
           <br />
           bookmarks you’ve saved
