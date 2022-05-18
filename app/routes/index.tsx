@@ -63,7 +63,7 @@ export default function Index() {
       <div className="flex pt-64 md:pt-0 relative overflow-hidden w-full">
         <img
           className="self-end block h-auto"
-          src="/half_tone_img.png"
+          src="/half_tone_img.webp"
           alt=""
         />
         <img
@@ -78,7 +78,7 @@ export default function Index() {
         />
         <img
           className="absolute top-0 left-0 w-full h-full"
-          src="/textured_bg.png"
+          src="/bg_texture.webp"
           alt=""
         />
         <Tweet
@@ -94,7 +94,7 @@ export default function Index() {
       </div>
       <div
         className="py-16 md:py-0 relative bg-white md:self-stretch flex flex-col items-center justify-center space-y-3 bg-cover"
-        style={{ backgroundImage: "url('/textured_bg.png')" }}
+        style={{ backgroundImage: "url('/bg_texture.webp')" }}
       >
         <div className="twitter-icon opacity-0">
           <svg
