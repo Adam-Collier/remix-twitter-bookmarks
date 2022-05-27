@@ -26,7 +26,7 @@ type TweetProps = {
   username: string
   profileImageUrl: string
   verified: Boolean
-  media: { type: string; url: string; height: number; width: number } | Boolean
+  media: { type: string; url: string; height: number; width: number }
   text: string
   date: Date
   className?: string
@@ -71,7 +71,7 @@ export const Tweet = ({
               @{username} ·{' '}
               {/* {new Date(tweet.created_at).toLocaleString()} */}
               {new Date(date).toLocaleDateString(undefined, {
-                year: undefined,
+                year: 'numeric',
                 month: 'long',
                 day: 'numeric',
               })}

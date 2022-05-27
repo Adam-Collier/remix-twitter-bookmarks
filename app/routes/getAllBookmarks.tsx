@@ -14,7 +14,10 @@ export const loader: LoaderFunction = async ({ request }) => {
   // as it stands we can only get 100 at a time with a potential max of 800
   let bookmarks = {
     data: [] as string[],
-    includes: {},
+    includes: {
+      users: [],
+      media: [],
+    },
   }
 
   const getBookmarks = async (token) => {
@@ -55,14 +58,8 @@ export const loader: LoaderFunction = async ({ request }) => {
     // bookmarks.includes is json so we need to do a little more fiddling
     bookmarks.includes = {
       ...bookmarks.includes,
-      users: {
-        ...bookmarks.includes.users,
-        ...json.includes.users,
-      },
-      media: {
-        ...bookmarks.includes.media,
-        ...json.includes.media,
-      },
+      users: [...bookmarks.includes.users, ...json.includes.users],
+      media: [...bookmarks.includes.media, ...json.includes.media],
     }
 
     if (json.meta.next_token) {
