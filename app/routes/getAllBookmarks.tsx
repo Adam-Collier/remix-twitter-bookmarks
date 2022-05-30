@@ -2,6 +2,7 @@ import type { LoaderFunction } from '@remix-run/node'
 import { redirect } from '@remix-run/node'
 import { json } from '@remix-run/node'
 import { getUser } from '~/utils/session.server'
+import type { AllBookmarks } from './bookmarks'
 
 export const loader: LoaderFunction = async ({ request }) => {
   const user = await getUser(request)
@@ -12,15 +13,15 @@ export const loader: LoaderFunction = async ({ request }) => {
 
   // let's get all of the users bookmarks here and return them to the client to persist locally
   // as it stands we can only get 100 at a time with a potential max of 800
-  let bookmarks = {
-    data: [] as string[],
+  let bookmarks: AllBookmarks = {
+    data: [],
     includes: {
       users: [],
       media: [],
     },
   }
 
-  const getBookmarks = async (token) => {
+  const getBookmarks = async (token: string) => {
     const bookmarksUrl = new URL(
       `https://api.twitter.com/2/users/${id}/bookmarks`
     )

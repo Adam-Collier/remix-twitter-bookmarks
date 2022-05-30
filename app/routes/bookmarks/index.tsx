@@ -1,12 +1,12 @@
 import { Form, useLocation, useSearchParams } from '@remix-run/react'
 import { useAtom } from 'jotai'
 import { Tweet } from '~/components/Tweet'
-import { userLookup } from '../bookmarks'
 import { allBookmarksAtom } from '../bookmarks'
 import { ClientOnly } from 'remix-utils'
 import { useEffect, useState } from 'react'
 import Select from '~/components/Select'
-import { mediaLookup } from '~/utils/utils'
+import { mediaLookup, userLookup } from '~/utils/utils'
+import type { AllBookmarks } from '../bookmarks'
 
 const Bookmarks = () => {
   const [allBookmarks] = useAtom<AllBookmarks | null>(allBookmarksAtom)
@@ -15,10 +15,16 @@ const Bookmarks = () => {
   const { search } = useLocation()
   let queryValue = params.get('query')
   let sortQuery = params.get('sort')
+  let yearQuery = params.get('year')
 
   useEffect(() => {
-    if (allBookmarks && (queryValue || sortQuery)) {
+    if (allBookmarks && (queryValue || sortQuery || yearQuery)) {
       let results = allBookmarks?.data.filter((tweet: any) => {
+        if (yearQuery) {
+          if (new Date(tweet.created_at).getFullYear().toString() !== yearQuery)
+            return false
+        }
+
         const annotations =
           tweet.context_annotations?.map(
             ({ entity }: { entity: { name: string } }) => entity.name
@@ -29,8 +35,8 @@ const Bookmarks = () => {
         )
         const result = [
           tweet.text,
-          twitterUser.name,
-          twitterUser.username,
+          twitterUser?.name,
+          twitterUser?.username,
           ...annotations,
         ].find((token) => token.toLowerCase().match(queryValue?.toLowerCase()))
 
@@ -118,8 +124,10 @@ const Bookmarks = () => {
                   year: 'numeric',
                 })
 
+                if (!user) return null
+
                 let tweetSection = (
-                  <>
+                  <div key={index}>
                     {tweetMonthYear !== currentMonthYear ? (
                       <div
                         className="flex items-center w-full space-x-4"
@@ -139,14 +147,13 @@ const Bookmarks = () => {
                       name={user.user}
                       username={user.username}
                       media={media}
-                      key={tweet.id}
                       profileImageUrl={user.profile_image_url}
                       verified={user.verified}
                       tweetId={tweet.id}
                       date={tweet.created_at}
                       text={tweet.text}
                     />
-                  </>
+                  </div>
                 )
 
                 currentMonthYear = tweetMonthYear

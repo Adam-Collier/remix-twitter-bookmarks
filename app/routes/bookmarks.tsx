@@ -12,22 +12,24 @@ import { useAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
 import { useEffect, useState } from 'react'
 import { ClientOnly } from 'remix-utils'
+import { Spinner } from '~/components/Spinner'
 import { getUser, logout } from '~/utils/session.server'
-import { updateSearchParams } from '~/utils/utils'
+import {
+  getBookmarkYears,
+  getPopularUsers,
+  updateSearchParams,
+} from '~/utils/utils'
 
-type AllBookmarks = {
+export type AllBookmarks = {
   data: {
     created_at: string
     author_id: string
   }[]
   includes: {
-    users: []
-    media: []
+    users: any[]
+    media: any[]
   }
 }
-
-export const userLookup = (userId: string, users: any) =>
-  users.find((user: { id: string }) => user.id === userId)
 
 // this is the atom we will use to store all of our bookmarks
 export const allBookmarksAtom = atomWithStorage('allBookmarks', null)
@@ -53,7 +55,7 @@ export const loader: LoaderFunction = async ({ request }) => {
   }
 }
 
-const getAllBookmarks = async (setAllBookmarks) => {
+const getAllBookmarks = async (setAllBookmarks: any) => {
   try {
     const response = await fetch('/getAllBookmarks')
     const json = await response.json()
@@ -70,10 +72,12 @@ const Bookmarks = () => {
   const { search } = useLocation()
   const [params] = useSearchParams()
   const query = params.get('query')
+  const yearParam = params.get('year')
   const [allBookmarks, setAllBookmarks] = useAtom<AllBookmarks | null>(
     allBookmarksAtom
   )
   const [popularUsers, setPopularUsers] = useState<string[] | null>(null)
+  const [bookmarkYears, setBookmarkYears] = useState<string[] | null>(null)
 
   useEffect(() => {
     if (!allBookmarks) getAllBookmarks(setAllBookmarks)
@@ -81,23 +85,11 @@ const Bookmarks = () => {
 
   useEffect(() => {
     if (allBookmarks) {
-      // count the occurance of each username
-      const usernames = allBookmarks.data.reduce((acc, tweet) => {
-        // get the username
-        const user = userLookup(tweet.author_id, allBookmarks.includes.users)
-        // create the username or increase the count
-        return {
-          ...acc,
-          [user.username]: (acc[user.username] || 0) + 1,
-        }
-      }, {})
-
-      // sort by the most popular
-      let mostPopular = Object.keys(usernames).sort(function (a, b) {
-        return -(usernames[a] - usernames[b])
-      })
       // get the 10 most popular
+      let mostPopular = getPopularUsers(allBookmarks)
+      let getYears = getBookmarkYears(allBookmarks)
       setPopularUsers(mostPopular.slice(0, 10))
+      setBookmarkYears(getYears)
     }
   }, [allBookmarks])
 
@@ -160,46 +152,44 @@ const Bookmarks = () => {
               )
             } else {
               // taken from https://github.com/nickbruun/svg-loaders
+              return <Spinner />
+            }
+          }}
+        </ClientOnly>
+        <h3 className="text-white">Filter by year...</h3>
+        <ClientOnly>
+          {() => {
+            if (bookmarkYears) {
               return (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 2400 2400"
-                  width="24"
-                  height="24"
-                  className="mx-auto"
-                >
-                  <g
-                    strokeWidth="200"
-                    strokeLinecap="round"
-                    stroke="#000"
-                    fill="none"
-                  >
-                    <path d="M1200 600V100" />
-                    <path opacity=".5" d="M1200 2300v-500" />
-                    <path opacity=".917" d="M900 680.4l-250-433" />
-                    <path opacity=".417" d="M1750 2152.6l-250-433" />
-                    <path opacity=".833" d="M680.4 900l-433-250" />
-                    <path opacity=".333" d="M2152.6 1750l-433-250" />
-                    <path opacity=".75" d="M600 1200H100" />
-                    <path opacity=".25" d="M2300 1200h-500" />
-                    <path opacity=".667" d="M680.4 1500l-433 250" />
-                    <path opacity=".167" d="M2152.6 650l-433 250" />
-                    <path opacity=".583" d="M900 1719.6l-250 433" />
-                    <path opacity=".083" d="M1750 247.4l-250 433" />
-                    <animateTransform
-                      attributeName="transform"
-                      attributeType="XML"
-                      type="rotate"
-                      keyTimes="0;0.08333;0.16667;0.25;0.33333;0.41667;0.5;0.58333;0.66667;0.75;0.83333;0.91667"
-                      values="0 1199 1199;30 1199 1199;60 1199 1199;90 1199 1199;120 1199 1199;150 1199 1199;180 1199 1199;210 1199 1199;240 1199 1199;270 1199 1199;300 1199 1199;330 1199 1199"
-                      dur="0.83333s"
-                      begin="0s"
-                      repeatCount="indefinite"
-                      calcMode="discrete"
-                    />
-                  </g>
-                </svg>
+                <div className="flex flex-wrap gap-1">
+                  {bookmarkYears.map((bookmarkYear, index) => {
+                    // create the updated query params
+                    const newParams = updateSearchParams(
+                      search,
+                      'year',
+                      bookmarkYear
+                    )
+
+                    return (
+                      <Link
+                        className={[
+                          'border border-white rounded-full px-4 py-2 text-sm',
+                          bookmarkYear.toString() === yearParam
+                            ? 'bg-white text-[#15202B]'
+                            : 'text-white',
+                        ].join(' ')}
+                        key={index}
+                        to={`/bookmarks?${newParams}`}
+                      >
+                        {bookmarkYear}
+                      </Link>
+                    )
+                  })}
+                </div>
               )
+            } else {
+              // taken from https://github.com/nickbruun/svg-loaders
+              return <Spinner />
             }
           }}
         </ClientOnly>
