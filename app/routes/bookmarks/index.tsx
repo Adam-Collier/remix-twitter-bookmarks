@@ -1,50 +1,31 @@
-import { Form, useLocation, useSearchParams } from '@remix-run/react'
+import { Form, useLocation } from '@remix-run/react'
 import { useAtom } from 'jotai'
 import { Tweet } from '~/components/Tweet'
-import { allBookmarksAtom } from '../bookmarks'
+import { allBookmarksAtom, bookmarksAtom } from '../bookmarks'
 import { ClientOnly } from 'remix-utils'
-import { useEffect, useState } from 'react'
-import Select from '~/components/Select'
-import { mediaLookup, userLookup } from '~/utils/utils'
-import type { AllBookmarks } from '../bookmarks'
+import React, { useEffect } from 'react'
+import { Select } from '~/components/Select'
+import { getFilteredBookmarks, mediaLookup, userLookup } from '~/utils/utils'
+import { Spinner } from '~/components/Spinner'
+import { Logo } from '~/svg/Logo'
+import { HamburgerMenuIcon } from '@radix-ui/react-icons'
+import { Link } from 'react-router-dom'
 
 const Bookmarks = () => {
-  const [allBookmarks] = useAtom<AllBookmarks | null>(allBookmarksAtom)
-  const [bookmarks, setBookmarks] = useState<AllBookmarks | null>(allBookmarks)
-  const [params] = useSearchParams()
+  const [allBookmarks] = useAtom(allBookmarksAtom)
+  const [bookmarks, setBookmarks] = useAtom(bookmarksAtom)
   const { search } = useLocation()
+  const params = new URLSearchParams(search)
   let queryValue = params.get('query')
   let sortQuery = params.get('sort')
   let yearQuery = params.get('year')
+  let monthQuery = params.get('month')
 
   useEffect(() => {
     if (allBookmarks && (queryValue || sortQuery || yearQuery)) {
-      let results = allBookmarks?.data.filter((tweet: any) => {
-        if (yearQuery) {
-          if (new Date(tweet.created_at).getFullYear().toString() !== yearQuery)
-            return false
-        }
-
-        const annotations =
-          tweet.context_annotations?.map(
-            ({ entity }: { entity: { name: string } }) => entity.name
-          ) ?? []
-        const twitterUser = userLookup(
-          tweet.author_id,
-          allBookmarks.includes.users
-        )
-        const result = [
-          tweet.text,
-          twitterUser?.name,
-          twitterUser?.username,
-          ...annotations,
-        ].find((token) => token.toLowerCase().match(queryValue?.toLowerCase()))
-
-        if (result) {
-          return tweet
-        }
-
-        return false
+      let results = getFilteredBookmarks(allBookmarks, {
+        yearQuery,
+        queryValue,
       })
 
       if (params.get('sort') === 'oldest') {
@@ -62,14 +43,29 @@ const Bookmarks = () => {
     } else {
       setBookmarks(allBookmarks)
     }
-  }, [queryValue, sortQuery, allBookmarks, params])
+  }, [queryValue, sortQuery, yearQuery, allBookmarks])
 
-  const currentParams = new URLSearchParams(search)
+  const currentParams = params
   currentParams.delete('query')
 
+  let filteredBookmarks = monthQuery
+    ? bookmarks?.data.filter((tweet) => {
+        let tweetMonth = new Date(tweet.created_at).toLocaleString('default', {
+          month: 'long',
+        })
+        return tweetMonth === monthQuery ? true : false
+      })
+    : bookmarks?.data
+
   return (
-    <div className="space-y-4">
-      <header className="sticky top-0 z-10 bg-white pt-8 pb-2">
+    <div className="space-y-4 pb-16">
+      <header className="sticky top-0 z-10 bg-white sm:pt-8 px-4">
+        <div className="max-w-md mx-auto flex justify-between items-center p-4 sm:hidden">
+          <Logo className="text-twitter-dark" />
+          <Link to={`/bookmarks?${search}&open=sidebar`}>
+            <HamburgerMenuIcon />
+          </Link>
+        </div>
         <div className="max-w-md mx-auto">
           <Form action={`/bookmarks?${currentParams}`}>
             <input
@@ -90,22 +86,23 @@ const Bookmarks = () => {
                   </p>
                   {queryValue && (
                     <p className="text-xs text-zinc-400 font-light">
-                      | {bookmarks ? bookmarks?.data?.length : 0} results
+                      | {filteredBookmarks ? filteredBookmarks?.length : 0}{' '}
+                      results
                     </p>
                   )}
                 </div>
               )}
             </ClientOnly>
-            <Select />
+            <Select className="ml-auto" />
           </div>
         </div>
       </header>
-      <section className="max-w-md w-full mx-auto flex flex-col items-center space-y-4">
+      <section className="max-w-md px-4 pb-16 w-full mx-auto flex flex-col items-center space-y-4">
         <ClientOnly>
           {() => {
             if (allBookmarks && bookmarks) {
               let currentMonthYear = ''
-              return bookmarks.data.map((tweet: any, index: number) => {
+              return filteredBookmarks?.map((tweet: any, index: number) => {
                 const user = userLookup(
                   tweet.author_id,
                   bookmarks.includes.users
@@ -127,17 +124,14 @@ const Bookmarks = () => {
                 if (!user) return null
 
                 let tweetSection = (
-                  <div key={index}>
+                  <React.Fragment key={tweet.id}>
                     {tweetMonthYear !== currentMonthYear ? (
-                      <div
-                        className="flex items-center w-full space-x-4"
-                        id={tweetMonthYear}
-                      >
-                        <span className="w-full border-t border-gray-400 shrink"></span>
-                        <p className="shrink-0 py-2 text-gray-400">
+                      <div className="flex items-center w-full space-x-4 py-4 first:pt-0">
+                        <span className="w-full border-t border-gray-400 border-dashed shrink"></span>
+                        <p className="shrink-0 text-gray-400 text-xs">
                           {tweetMonthYear}
                         </p>
-                        <span className="w-full border-t border-gray-400 shrink"></span>
+                        <span className="w-full border-t border-gray-400 border-dashed shrink"></span>
                       </div>
                     ) : (
                       ''
@@ -153,7 +147,7 @@ const Bookmarks = () => {
                       date={tweet.created_at}
                       text={tweet.text}
                     />
-                  </div>
+                  </React.Fragment>
                 )
 
                 currentMonthYear = tweetMonthYear
@@ -163,43 +157,7 @@ const Bookmarks = () => {
             } else {
               return (
                 // taken from https://github.com/nickbruun/svg-loaders
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 2400 2400"
-                  width="24"
-                  height="24"
-                >
-                  <g
-                    strokeWidth="200"
-                    strokeLinecap="round"
-                    stroke="#000"
-                    fill="none"
-                  >
-                    <path d="M1200 600V100" />
-                    <path opacity=".5" d="M1200 2300v-500" />
-                    <path opacity=".917" d="M900 680.4l-250-433" />
-                    <path opacity=".417" d="M1750 2152.6l-250-433" />
-                    <path opacity=".833" d="M680.4 900l-433-250" />
-                    <path opacity=".333" d="M2152.6 1750l-433-250" />
-                    <path opacity=".75" d="M600 1200H100" />
-                    <path opacity=".25" d="M2300 1200h-500" />
-                    <path opacity=".667" d="M680.4 1500l-433 250" />
-                    <path opacity=".167" d="M2152.6 650l-433 250" />
-                    <path opacity=".583" d="M900 1719.6l-250 433" />
-                    <path opacity=".083" d="M1750 247.4l-250 433" />
-                    <animateTransform
-                      attributeName="transform"
-                      attributeType="XML"
-                      type="rotate"
-                      keyTimes="0;0.08333;0.16667;0.25;0.33333;0.41667;0.5;0.58333;0.66667;0.75;0.83333;0.91667"
-                      values="0 1199 1199;30 1199 1199;60 1199 1199;90 1199 1199;120 1199 1199;150 1199 1199;180 1199 1199;210 1199 1199;240 1199 1199;270 1199 1199;300 1199 1199;330 1199 1199"
-                      dur="0.83333s"
-                      begin="0s"
-                      repeatCount="indefinite"
-                      calcMode="discrete"
-                    />
-                  </g>
-                </svg>
+                <Spinner />
               )
             }
           }}

@@ -59,7 +59,7 @@ export default function Index() {
   }, [])
 
   return (
-    <main className="relative bg-[#15202B] flex flex-col-reverse md:flex-row md:children:basis-1/2 md:min-h-screen">
+    <main className="relative bg-twitter-dark flex flex-col-reverse md:flex-row md:children:basis-1/2 md:min-h-screen">
       <div className="flex pt-64 md:pt-0 relative overflow-hidden w-full">
         <img
           className="self-end block h-auto"
