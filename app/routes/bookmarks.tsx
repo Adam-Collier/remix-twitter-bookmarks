@@ -1,13 +1,40 @@
 import type { LoaderFunction } from '@remix-run/node'
 import { json, redirect } from '@remix-run/node'
-import { Form, useLoaderData, useSearchParams } from '@remix-run/react'
+import { Link, Outlet, useLoaderData, useLocation } from '@remix-run/react'
+import { atom, useAtom } from 'jotai'
+import { atomWithStorage } from 'jotai/utils'
+import { useEffect, useState } from 'react'
+import { ClientOnly } from 'remix-utils'
+import { Footer } from '~/components/Footer'
 import { getUser, logout } from '~/utils/session.server'
+import {
+  getBookmarkMonths,
+  getBookmarkYears,
+  getPopularUsers,
+  updateSearchParams,
+} from '~/utils/utils'
+import { Logo } from '~/svg/Logo'
+import { FilterButton } from '~/components/FilterButton'
+import { Cross1Icon } from '@radix-ui/react-icons'
 
-const userLookup = (userId: string, users: any) =>
-  users.find((user) => user.id === userId)
+export type AllBookmarks = {
+  data: {
+    created_at: string
+    author_id: string
+  }[]
+  includes: {
+    users: any[]
+    media: any[]
+  }
+}
 
-const mediaLookup = (mediaId: string, mediaList: any) =>
-  mediaList.find((media) => media.media_key === mediaId)
+// this is the atom we will use to store all of our bookmarks
+export const allBookmarksAtom = atomWithStorage<AllBookmarks | null>(
+  'allBookmarks',
+  null
+)
+// this atom will store the filtered items
+export const bookmarksAtom = atom<AllBookmarks | null>(null)
 
 export const loader: LoaderFunction = async ({ request }) => {
   try {
@@ -22,75 +49,20 @@ export const loader: LoaderFunction = async ({ request }) => {
       return logout(request)
     }
 
-    const { id, access_token } = user
-
-    const bookmarksUrl = new URL(
-      `https://api.twitter.com/2/users/${id}/bookmarks`
-    )
-
-    bookmarksUrl.searchParams.append(
-      'tweet.fields',
-      'context_annotations,created_at'
-    )
-    bookmarksUrl.searchParams.append(
-      'expansions',
-      'author_id,attachments.media_keys'
-    )
-    bookmarksUrl.searchParams.append(
-      'user.fields',
-      'verified,profile_image_url'
-    )
-    bookmarksUrl.searchParams.append('media.fields', 'type,url,width,height')
-
-    const response = await fetch(bookmarksUrl.toString(), {
-      headers: {
-        Accept: 'application/json',
-        'Content-type': 'application/json',
-        Authorization: `Bearer ${access_token}`,
-      },
-    })
-
-    const bookmarks = await response.json()
-
-    // grab the query from the url if there is one
-    const url = new URL(request.url)
-    const queryValue = url.searchParams.get('query')
-    // if there is a query then we can start to filter the tweets
-    if (queryValue) {
-      const results = bookmarks.data.filter((tweet: any) => {
-        const annotations =
-          tweet.context_annotations?.map(({ entity }) => entity.name) ?? []
-        const twitterUser = userLookup(
-          tweet.author_id,
-          bookmarks.includes.users
-        )
-        const result = [
-          tweet.text,
-          twitterUser.name,
-          twitterUser.username,
-          ...annotations,
-        ].find((token) => token.toLowerCase().match(queryValue))
-
-        if (result) {
-          return tweet
-        }
-
-        return false
-      })
-
-      return json({
-        user,
-        bookmarks: {
-          ...bookmarks,
-          data: results,
-        },
-      })
-    }
-
     return json({
       user,
-      bookmarks,
     })
+  } catch (err) {
+    console.log(err)
+  }
+}
+
+const getAllBookmarks = async (setAllBookmarks: any) => {
+  try {
+    const response = await fetch('/getAllBookmarks')
+    const json = await response.json()
+    setAllBookmarks(json)
+    return
   } catch (err) {
     console.log(err)
   }
@@ -98,116 +70,194 @@ export const loader: LoaderFunction = async ({ request }) => {
 
 const Bookmarks = () => {
   const data = useLoaderData()
-  const { bookmarks, user } = data
-  const [params] = useSearchParams()
+  const { user } = data
+  const { search } = useLocation()
+  const params = new URLSearchParams(search)
 
-  if (!bookmarks) {
-    return <p>we couldnt grab your bookmarks!</p>
-  }
+  const query = params.get('query')
+  const yearParam = params.get('year')
+  const monthParam = params.get('month')
+  const openParam = params.get('open')
+
+  const [allBookmarks, setAllBookmarks] = useAtom<AllBookmarks | null>(
+    allBookmarksAtom
+  )
+  const [bookmarks] = useAtom<AllBookmarks | null>(bookmarksAtom)
+  const [popularUsers, setPopularUsers] = useState<string[] | null>(null)
+  const [bookmarkYears, setBookmarkYears] = useState<string[] | null>(null)
+
+  useEffect(() => {
+    if (!allBookmarks) getAllBookmarks(setAllBookmarks)
+  }, [])
+
+  useEffect(() => {
+    if (allBookmarks) {
+      // get the 10 most popular
+      let mostPopular = getPopularUsers(allBookmarks)
+      let getYears = getBookmarkYears(allBookmarks)
+      setPopularUsers(mostPopular.slice(0, 10))
+      setBookmarkYears(getYears)
+    }
+  }, [allBookmarks])
 
   return (
-    <main className="flex flex-col p-4">
-      <Form action="/logout" method="post" className="ml-auto">
-        <button
-          name="logout"
-          className="rounded-full bg-[#1d9bf0] text-white py-3 px-4 hover:bg-[#1a8cd8]"
-          aria-label="logout"
+    <main>
+      <div className="relative bg-twitter-dark flex">
+        <section
+          className={`bg-twitter-dark max-w-md w-full fixed z-20 top-0 left-0 bottom-0 space-y-4 bg-[url(/bg_texture.webp)] p-4 sm:p-8 pr-14 sm:pr-14 sm:translate-x-0 sm:relative sm:self-start sm:sticky sm:top-0 sm:max-w-md sm:h-screen transition-transform ${
+            openParam ? 'translate-x-0' : '-translate-x-full'
+          }`}
         >
-          Logout
-        </button>
-      </Form>
-
-      <div className="max-w-md w-full mx-auto space-y-8">
-        <h1 className="text-2xl">{user.name.split(' ')[0]}'s bookmarks!</h1>
-        <Form>
-          <input
-            className="border border-gray-400 w-full p-2 rounded"
-            type="text"
-            name="query"
-            placeholder="Search tweets..."
-            defaultValue={params.get('query') as string}
-          />
-        </Form>
-
-        {!bookmarks.data.length && (
-          <p>There are no bookmarks found with your search...</p>
-        )}
-
-        {bookmarks.data.length > 0 &&
-          bookmarks.data.map((tweet, index) => {
-            const user = userLookup(tweet.author_id, bookmarks.includes.users)
-
-            const media = mediaLookup(
-              tweet?.attachments?.media_keys[0],
-              bookmarks.includes.media
-            )
-
-            return (
-              <a
-                className="block flex space-x-4"
-                key={index}
-                href={`https://twitter.com/${user.username}/status/${tweet.id}`}
+          <div>
+            <div className="max-w-md mx-auto flex justify-between items-center h-8 sm:hidden">
+              <Link
+                to={`/bookmarks?${updateSearchParams(search, 'open')}`}
+                className="text-white ml-auto"
               >
-                <div className="relative w-8 h-8 rounded-full bg-gray-100 overflow-hidden shrink-0">
-                  <img
-                    className="absolute top-0 left-0 w-full h-full"
-                    src={user.profile_image_url}
-                    alt={`${user.username} profile`}
-                  />
-                </div>
-                <div className="flex-col space-y-2">
-                  <header className="flex space-x-4 items-center">
-                    <div className="flex items-center space-x-1">
-                      <h2>{user.name} </h2>
-                      {user.verified && (
-                        <img
-                          className="w-4 h-4 text-red"
-                          src="/verified.svg"
-                          alt=""
-                        />
-                      )}
-                      <p>
-                        @{user.username} ·{' '}
-                        {/* {new Date(tweet.created_at).toLocaleString()} */}
-                        {new Date(tweet.created_at).toLocaleDateString(
-                          undefined,
-                          {
-                            year: undefined,
-                            month: 'long',
-                            day: 'numeric',
-                          }
-                        )}
-                      </p>
-                    </div>
-                  </header>
-                  {media && media.type === 'photo' && (
-                    <div
-                      className="relative rounded-md overflow-hidden"
-                      style={{
-                        paddingTop: `${(media.height / media.width) * 100}%`,
-                      }}
-                    >
-                      <img
-                        className="absolute top-0 left-0 w-full h-full"
-                        src={media.url}
-                        alt="tweet media"
-                      />
-                    </div>
-                  )}
+                <Cross1Icon />
+              </Link>
+            </div>
+            <Link to="/bookmarks" className="pb-4 hidden sm:block">
+              <Logo className="text-white" />
+            </Link>
+          </div>
 
-                  {media && media.type === 'video' && (
-                    <div>
-                      <p className="text-xs p-2 bg-blue-100 text-blue-600 rounded-sm">
-                        This tweet contains a video but Twitters Bookmark API
-                        doesnt currently support grabbing their URL.
-                      </p>
+          <p className="text-white text-sm">
+            Let's help you find your bookmarks quickly and easily! Use the
+            filters below or freestyle it in the search bar.
+          </p>
+          <div className="w-full">
+            <Link
+              to="/bookmarks"
+              className={[
+                'block text-center w-full border rounded-lg px-4 py-2 text-sm text-[#15202B] ',
+                search
+                  ? 'bg-white border-white'
+                  : 'bg-gray-500 text-gray-300 border-gray-400',
+              ].join(' ')}
+            >
+              Clear Filters
+            </Link>
+          </div>
+          <ClientOnly>
+            {() => {
+              if (popularUsers) {
+                return (
+                  <>
+                    <h3 className="text-white">
+                      Your favourite bookmark authors...
+                    </h3>
+                    <div className="flex flex-wrap gap-1">
+                      {popularUsers.map((username, index) => {
+                        // create the updated query params
+                        let newParams = updateSearchParams(
+                          search,
+                          'query',
+                          username
+                        )
+
+                        newParams = updateSearchParams(newParams, 'month')
+                        newParams = updateSearchParams(newParams, 'year')
+
+                        return (
+                          <FilterButton
+                            key={username}
+                            params={newParams}
+                            active={query === username}
+                            text={`@${username}`}
+                          />
+                        )
+                      })}
                     </div>
-                  )}
-                  <p>{tweet.text}</p>
-                </div>
-              </a>
-            )
-          })}
+                  </>
+                )
+              }
+            }}
+          </ClientOnly>
+          <ClientOnly>
+            {() => {
+              if (bookmarkYears) {
+                return (
+                  <>
+                    <h3 className="text-white">Filter by year...</h3>
+                    <div className="flex flex-wrap gap-1">
+                      {bookmarkYears.map((bookmarkYear, index) => {
+                        // create the updated query params
+                        let newParams = updateSearchParams(
+                          search,
+                          'year',
+                          bookmarkYear
+                        )
+
+                        newParams = updateSearchParams(newParams, 'month')
+
+                        return (
+                          <FilterButton
+                            key={bookmarkYear}
+                            params={newParams}
+                            active={bookmarkYear.toString() === yearParam}
+                            text={bookmarkYear}
+                          />
+                        )
+                      })}
+                    </div>
+                  </>
+                )
+              }
+            }}
+          </ClientOnly>
+          <ClientOnly>
+            {() => {
+              if (bookmarkYears && bookmarks) {
+                // get all of the available months
+                const bookmarkMonths = getBookmarkMonths(bookmarks)
+
+                if (!bookmarkMonths || !bookmarkMonths.length) return null
+
+                return (
+                  <>
+                    <h3 className="text-white">
+                      and optionally filter by month...
+                    </h3>
+                    <div className="flex flex-wrap gap-1">
+                      {bookmarkMonths.map((bookmarkMonth, index) => {
+                        // create the updated query params
+                        const newParams = updateSearchParams(
+                          search,
+                          'month',
+                          bookmarkMonth as string
+                        )
+
+                        return (
+                          <FilterButton
+                            key={bookmarkMonth}
+                            params={newParams}
+                            active={bookmarkMonth === monthParam}
+                            text={bookmarkMonth}
+                          />
+                        )
+                      })}
+                    </div>
+                  </>
+                )
+              }
+            }}
+          </ClientOnly>
+          {/* page tear image */}
+          <img
+            className="absolute top-0 -right-[2px] bottom-0 !mt-0 h-screen z-10"
+            src="/page_tear.svg"
+            alt="page tear"
+          />
+
+          <Footer
+            user={user}
+            className="absolute bottom-0 right-0 left-0 px-8 py-4 bg-twitter-dark border-t border-[#375471] border-dashed"
+          />
+        </section>
+        <section className="bg-white w-full bg-[url(/bg_texture.webp)] bg-fixed grow">
+          <Outlet />
+        </section>
       </div>
     </main>
   )
