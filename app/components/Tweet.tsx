@@ -71,7 +71,10 @@ export const Tweet = ({
               @{username} ·{' '}
               {/* {new Date(tweet.created_at).toLocaleString()} */}
               {new Date(date).toLocaleDateString(undefined, {
-                year: 'numeric',
+                year:
+                  new Date(date).getFullYear() === new Date().getFullYear()
+                    ? undefined
+                    : 'numeric',
                 month: 'long',
                 day: 'numeric',
               })}

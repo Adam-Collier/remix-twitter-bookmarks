@@ -83,7 +83,7 @@ export default function Index() {
         />
         <Tweet
           className="!w-[90%] max-w-sm absolute top-2/12 md:top-1/8 left-1/2 md:left-[calc(50%-24px)] -translate-x-1/2"
-          name="Mountain Dave"
+          name="Dave Marsh"
           username="mountaindave"
           media={false}
           profileImageUrl={'/avatar.jpg'}
