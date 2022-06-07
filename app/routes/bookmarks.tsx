@@ -6,7 +6,7 @@ import { atomWithStorage } from 'jotai/utils'
 import { useEffect, useState } from 'react'
 import { ClientOnly } from 'remix-utils'
 import { Footer } from '~/components/Footer'
-import { getUser, logout } from '~/utils/session.server'
+import { getUser, logout, refreshToken } from '~/utils/session.server'
 import {
   getBookmarkMonths,
   getBookmarkYears,
@@ -54,7 +54,8 @@ export const loader: LoaderFunction = async ({ request }) => {
 
     // check whether the access token has expired
     if (new Date(user.expires_at) < new Date()) {
-      return logout(request)
+      // here we can refresh the token
+      return await refreshToken(request, user)
     }
 
     return json({
