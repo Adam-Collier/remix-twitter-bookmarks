@@ -1,7 +1,7 @@
 import type { LoaderFunction } from '@remix-run/node'
 import { json } from '@remix-run/node'
 import { Form, Link, useLoaderData } from '@remix-run/react'
-import { animate, spring, stagger } from 'motion'
+import { animate, spring } from 'motion'
 import { useEffect } from 'react'
 import { Tweet } from '~/components/Tweet'
 import { getUser } from '~/utils/session.server'

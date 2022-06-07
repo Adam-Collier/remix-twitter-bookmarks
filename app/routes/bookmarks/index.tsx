@@ -1,18 +1,19 @@
 import { Form, useLocation } from '@remix-run/react'
 import { useAtom } from 'jotai'
-import { Tweet } from '~/components/Tweet'
 import { allBookmarksAtom, bookmarksAtom } from '../bookmarks'
 import { ClientOnly } from 'remix-utils'
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { Select } from '~/components/Select'
-import { getFilteredBookmarks, mediaLookup, userLookup } from '~/utils/utils'
+import { getFilteredBookmarks } from '~/utils/utils'
 import { Spinner } from '~/components/Spinner'
 import { Logo } from '~/svg/Logo'
-import { HamburgerMenuIcon } from '@radix-ui/react-icons'
+import { HamburgerMenuIcon, UpdateIcon } from '@radix-ui/react-icons'
 import { Link } from 'react-router-dom'
+import { InfiniteScroll } from '~/components/InfiniteScroll'
+import { SearchInfo } from '~/components/SearchInfo'
 
 const Bookmarks = () => {
-  const [allBookmarks] = useAtom(allBookmarksAtom)
+  const [allBookmarks, setAllBookmarks] = useAtom(allBookmarksAtom)
   const [bookmarks, setBookmarks] = useAtom(bookmarksAtom)
   const { search } = useLocation()
   const params = new URLSearchParams(search)
@@ -58,8 +59,8 @@ const Bookmarks = () => {
     : bookmarks?.data
 
   return (
-    <div className="space-y-4 pb-16">
-      <header className="sticky top-0 z-10 bg-white sm:pt-8 px-4">
+    <div className="pb-16">
+      <header className="sticky top-0 z-10 bg-white sm:pt-6 px-4">
         <div className="max-w-md mx-auto flex justify-between items-center p-4 sm:hidden">
           <Logo className="text-twitter-dark" />
           <Link to={`/bookmarks?${search}&open=sidebar`}>
@@ -76,84 +77,33 @@ const Bookmarks = () => {
               defaultValue={params.get('query') ?? ('' as string)}
             />
           </Form>
-          <div className="flex justify-between items-center pt-2">
-            <ClientOnly>
-              {() => (
-                <div className="flex w-full">
-                  <p className="text-xs pl-4 text-zinc-400 font-light pr-1">
-                    {allBookmarks ? allBookmarks?.data?.length : 0} searchable
-                    bookmarks
-                  </p>
-                  {queryValue && (
-                    <p className="text-xs text-zinc-400 font-light">
-                      | {filteredBookmarks ? filteredBookmarks?.length : 0}{' '}
-                      results
-                    </p>
-                  )}
-                </div>
-              )}
-            </ClientOnly>
+          <div className="flex justify-between items-center">
+            <SearchInfo filteredBookmarks={filteredBookmarks} />
             <Select className="ml-auto" />
           </div>
         </div>
       </header>
-      <section className="max-w-md px-4 pb-16 w-full mx-auto flex flex-col items-center space-y-4">
+      <section className="max-w-md px-4 pb-16 w-full mx-auto flex flex-col items-center">
         <ClientOnly>
           {() => {
             if (allBookmarks && bookmarks) {
-              let currentMonthYear = ''
-              return filteredBookmarks?.map((tweet: any, index: number) => {
-                const user = userLookup(
-                  tweet.author_id,
-                  bookmarks.includes.users
-                )
-
-                const media = mediaLookup(
-                  tweet?.attachments?.media_keys[0],
-                  bookmarks.includes.media
-                )
-
-                // get the month and year of the tweet
-                let tweetMonthYear = new Date(
-                  tweet.created_at
-                ).toLocaleDateString('en-GB', {
-                  month: 'long',
-                  year: 'numeric',
-                })
-
-                if (!user) return null
-
-                let tweetSection = (
-                  <React.Fragment key={tweet.id}>
-                    {tweetMonthYear !== currentMonthYear ? (
-                      <div className="flex items-center w-full space-x-4 py-4 first:pt-0">
-                        <span className="w-full border-t border-gray-400 border-dashed shrink"></span>
-                        <p className="shrink-0 text-gray-400 text-xs">
-                          {tweetMonthYear}
-                        </p>
-                        <span className="w-full border-t border-gray-400 border-dashed shrink"></span>
-                      </div>
-                    ) : (
-                      ''
-                    )}
-                    <Tweet
-                      className="bg-white rouded shadow-md"
-                      name={user.user}
-                      username={user.username}
-                      media={media}
-                      profileImageUrl={user.profile_image_url}
-                      verified={user.verified}
-                      tweetId={tweet.id}
-                      date={tweet.created_at}
-                      text={tweet.text}
-                    />
-                  </React.Fragment>
-                )
-
-                currentMonthYear = tweetMonthYear
-
-                return tweetSection
-              })
+              return (
+                <>
+                  <div className="w-full bg-gray-50 mb-4">
+                    <button
+                      className="flex justify-center items-center text-xs p-2 space-x-1 w-full hover:bg-gray-100"
+                      onClick={() => {
+                        setAllBookmarks(null)
+                      }}
+                    >
+                      <UpdateIcon /> <span>Refresh bookmarks</span>
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    <InfiniteScroll data={filteredBookmarks} />
+                  </div>
+                </>
+              )
             } else {
               return (
                 // taken from https://github.com/nickbruun/svg-loaders

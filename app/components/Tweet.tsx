@@ -26,7 +26,7 @@ type TweetProps = {
   username: string
   profileImageUrl: string
   verified: Boolean
-  media: { type: string; url: string; height: number; width: number }
+  media: { type: string; url: string; height: number; width: number } | false
   text: string
   date: Date
   className?: string
