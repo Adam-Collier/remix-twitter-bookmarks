@@ -23,7 +23,15 @@ export type AllBookmarks = {
     author_id: string
   }[]
   includes: {
-    users: any[]
+    users:
+      | {
+          id?: string
+          name: string
+          username: string
+          user: string
+          verified: Boolean
+          profile_image_url: string
+        }[]
     media: any[]
   }
 }
@@ -82,13 +90,18 @@ const Bookmarks = () => {
   const [allBookmarks, setAllBookmarks] = useAtom<AllBookmarks | null>(
     allBookmarksAtom
   )
-  const [bookmarks] = useAtom<AllBookmarks | null>(bookmarksAtom)
+  const [bookmarks, setBookmarks] = useAtom(bookmarksAtom)
   const [popularUsers, setPopularUsers] = useState<string[] | null>(null)
   const [bookmarkYears, setBookmarkYears] = useState<string[] | null>(null)
 
   useEffect(() => {
-    if (!allBookmarks) getAllBookmarks(setAllBookmarks)
-  }, [])
+    if (!allBookmarks) {
+      setBookmarks(null)
+      setPopularUsers(null)
+      setBookmarkYears(null)
+      getAllBookmarks(setAllBookmarks)
+    }
+  }, [allBookmarks])
 
   useEffect(() => {
     if (allBookmarks) {
@@ -216,9 +229,7 @@ const Bookmarks = () => {
 
                 return (
                   <>
-                    <h3 className="text-white">
-                      and optionally filter by month...
-                    </h3>
+                    <h3 className="text-white">Filter by month...</h3>
                     <div className="flex flex-wrap gap-1">
                       {bookmarkMonths.map((bookmarkMonth, index) => {
                         // create the updated query params
@@ -255,7 +266,7 @@ const Bookmarks = () => {
             className="absolute bottom-0 right-0 left-0 px-8 py-4 bg-twitter-dark border-t border-[#375471] border-dashed"
           />
         </section>
-        <section className="bg-white w-full bg-[url(/bg_texture.webp)] bg-fixed grow">
+        <section className="bg-white w-full bg-[url(/bg_texture.webp)] bg-fixed grow md:h-screen md:overflow-y-scroll">
           <Outlet />
         </section>
       </div>
