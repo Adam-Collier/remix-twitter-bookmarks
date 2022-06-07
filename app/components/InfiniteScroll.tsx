@@ -29,7 +29,6 @@ export const InfiniteScroll = ({ data }: any) => {
     let observer = new IntersectionObserver((entries) => {
       const [entry] = entries
       if (entry.isIntersecting) {
-        console.log(data.length, tweetsPerPage * page)
         if (data.length > tweetsPerPage * page) {
           setPage(page + 1)
           setItems(data.slice(0, tweetsPerPage * (page + 1)))
