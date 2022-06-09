@@ -67,7 +67,7 @@ export default function Index() {
           alt=""
         />
         <img
-          className="absolute hidden md:block md:rotate-0 md:top-0 md:bottom-0 md:right-[-2px]"
+          className="absolute hidden md:block md:top-0 md:h-screen md:right-[-2px]"
           src="/page_tear.svg"
           alt=""
         />

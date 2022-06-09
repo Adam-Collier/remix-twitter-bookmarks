@@ -67,7 +67,7 @@ const Bookmarks = () => {
             <HamburgerMenuIcon />
           </Link>
         </div>
-        <div className="max-w-md mx-auto">
+        <div className="max-w-[622px] mx-auto">
           <Form action={`/bookmarks?${currentParams}`}>
             <input
               className="border border-zinc-800 w-full px-4 py-2.5 rounded-full"
@@ -83,7 +83,7 @@ const Bookmarks = () => {
           </div>
         </div>
       </header>
-      <section className="max-w-md px-4 pb-16 w-full mx-auto flex flex-col items-center">
+      <section className="max-w-[622px] px-4 pb-16 w-full mx-auto flex flex-col items-center">
         <ClientOnly>
           {() => {
             if (allBookmarks && bookmarks) {
